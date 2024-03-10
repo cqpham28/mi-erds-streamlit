@@ -33,13 +33,14 @@ def write():
                 
                 ## data
                 uploaded = path_upload_processed[i]
-                pathfile = save_uploaded_file(uploaded)
+                # pathfile = save_uploaded_file(uploaded)
 
                 fn = uploaded.name
                 run_idx = int(fn[fn.find("run")+3])
                 st.session_state.current_file = fn
                 st.session_state.current_run = run_idx
-                st.session_state.path_edf[run_idx] = pathfile
+                st.session_state.path_edf[run_idx] = fn
+                # st.session_state.path_edf[run_idx] = pathfile
                 
                 ##
                 get_tfr()
