@@ -34,8 +34,8 @@ class Flex2023(BaseDataset):
         raw0 = st_read_edf(path_edf)
 
         ## stim events
-        # stim = raw0.get_data(picks=["MarkerValueInt"], units='uV')[0]
-        stim = fix_stim(raw0)
+        stim = raw0.get_data(picks=["MarkerValueInt"], units='uV')[0]
+        # stim = fix_stim(raw0)
 
         # fmt: off
         eeg_ch_names = [
