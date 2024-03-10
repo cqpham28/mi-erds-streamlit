@@ -1,6 +1,5 @@
 import streamlit as st
 import streamlit.components.v1 as components
-import mpld3
 import mne
 from io import BytesIO
 import os
@@ -15,11 +14,11 @@ from src.plots import get_tfr, plot_curve, plot_heatmap
 def write():
     """Used to write the page in the app.py file"""
 
-    st.header("ERDS Visualization")
+    st.header("ERDS Visualization (demo)")
 
     ## Uploader
-    with st.expander(label=':blue[Local source]', expanded=True):
-        path_upload_processed = st.file_uploader("Upload EEG files (.edf)", 
+    with st.expander(label=':blue[MI Experiment Runs]', expanded=True):
+        path_upload_processed = st.file_uploader("Upload (multiple) EEG files [.edf]", 
                                             type=["edf"],
                                             accept_multiple_files=True)
     
