@@ -2,3 +2,4 @@ moabb
 mne
 streamlit
 seaborn
+scikit-learn

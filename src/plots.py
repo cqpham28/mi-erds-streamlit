@@ -17,15 +17,9 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import TwoSlopeNorm
 import seaborn as sns
 
-from src.data import Flex2023
+from src.data import Flex2023_moabb_st
 
 
-def get_info_run(idx:int = 1):
-    dataset = Flex2023()
-    dataset.subject_list = [idx]
-    event_ids = dict(right_hand=1, left_hand=2)
-    # event_ids = dict(right_hand=1, left_hand=2, right_foot=3, left_foot=4)
-    return dataset, event_ids
 
 
 # @st.cache_data
@@ -37,9 +31,14 @@ def get_tfr():
     Return:
         MNE Epochs, MNE tfr
     """
-    current_run = st.session_state.current_run
-    dataset, event_ids = get_info_run(idx=current_run) 
-    subjects = dataset.subject_list
+    ## ADAPT STREAMLIT
+    subject = st.session_state.current_subject
+    run = st.session_state.current_run
+    dataset = Flex2023_moabb_st()
+    dataset.subject_list = [subject]
+    dataset.runs = run
+    event_ids = dict(left_hand=1, right_hand=2)
+
 
     ## CONFIG
     fmin, fmax = 0, 63.999
@@ -63,7 +62,7 @@ def get_tfr():
     ## get RAW from moabb to compatible with mne
     X, labels, meta = paradigm.get_data(
         dataset=dataset, 
-        subjects=subjects, 
+        subjects=[subject], 
         return_raws=True
         )
     raw = concatenate_raws([f for f in X])
@@ -98,7 +97,7 @@ def get_tfr():
     )
     tfr.crop(tmin, tmax).apply_baseline(baseline, mode="percent")
 
-    st.session_state.data_run[current_run] = (epochs, tfr)
+    st.session_state.data_run[run] = (epochs, tfr)
     return
 
 
@@ -109,10 +108,10 @@ def plot_heatmap():
     """
     Plot ERDS map (Clemen Bruner) 
     """
-
-    current_run = st.session_state.current_run
-    dataset, event_ids = get_info_run(idx=current_run) 
-    (epochs, tfr) = st.session_state.data_run[current_run]
+	## ADAPT STREAMLIT
+    event_ids = dict(left_hand=1, right_hand=2)
+    run = st.session_state.current_run
+    (epochs, tfr) = st.session_state.data_run[run]
 
 
     vmin, vmax = -1, 1.5  # set min and max ERDS values in plot
@@ -173,8 +172,9 @@ def plot_curve():
     Plot ERD/ERDS curve 
     """
 
-    current_run = st.session_state.current_run
-    (epochs, tfr) = st.session_state.data_run[current_run]
+	## ADAPT STREAMLIT
+    run = st.session_state.current_run
+    (epochs, tfr) = st.session_state.data_run[run]
 
     df = tfr.to_data_frame(time_format=None, long_format=True)
   
@@ -186,7 +186,7 @@ def plot_curve():
     )
 
     # Filter to retain only relevant frequency bands:
-    freq_bands_of_interest = ["theta", "alpha", "beta"]
+    freq_bands_of_interest = ["alpha", "beta"]
 
     df = df[df.band.isin(freq_bands_of_interest)]
     df["band"] = df["band"].cat.remove_unused_categories()
@@ -204,7 +204,7 @@ def plot_curve():
 
         axline_kw = dict(color="black", linestyle="dashed", linewidth=2)
         g.map(plt.axhline, y=0, **axline_kw)
-        g.map(plt.axvline, x=3, **axline_kw)
+        g.map(plt.axvline, x=4, **axline_kw)
         g.map(plt.axvline, x=8, **axline_kw)
         
         g.set(ylim=(None, 1.5))

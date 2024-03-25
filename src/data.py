@@ -11,13 +11,13 @@ from mne.io import read_raw_edf
 from moabb.datasets.base import BaseDataset
 
 
-class Flex2023(BaseDataset):
+class Flex2023_moabb_st(BaseDataset):
     """Motor Imagery moabb dataset 
-    Adapt to streamlit upload edf files"""
+    Adapt to streamlit upload individual edf files"""
 
     def __init__(self):
         super().__init__(
-            subjects=list(range(15)),
+            subjects=list(range(12, 20)),
             sessions_per_subject=1,
             events=dict(right_hand=1, left_hand=2, right_foot=3, left_foot=4),
             code="Flex2023",
@@ -25,18 +25,10 @@ class Flex2023(BaseDataset):
             paradigm="imagery",
             doi="",
         )
+        self.runs = "run1"
+        
 
-    def _get_single_subject_data(self, subject):
-        """Return data for a single subject."""
-    
-        ## read raw
-        path_edf = self.data_path(subject)
-        raw0 = st_read_edf(path_edf)
-
-        ## stim events
-        stim = raw0.get_data(picks=["MarkerValueInt"], units='uV')[0]
-        # stim = fix_stim(raw0)
-
+    def _flow(self, raw0, stim):
         # fmt: off
         eeg_ch_names = [
             'Cz', 'Fz', 'Fp1', 'F7', 'F3', 
@@ -59,63 +51,26 @@ class Flex2023(BaseDataset):
         raw = mne.io.RawArray(data=data, info=info, verbose=False)
         montage = make_standard_montage("standard_1020")
         raw.set_montage(montage)
+        
+        return raw
+
+
+    def _get_single_subject_data(self, subject):
+        """Return data for a single subject."""
+    
+        path_edf = self.data_path(subject)
+        raw0 = mne.io.read_raw_edf(path_edf, preload=False)
+        stim = raw0.get_data(picks=["MarkerValueInt"], units='uV')[0]
+        raw = self._flow(raw0, stim)
 
         return {"0": {"0": raw}}
 
 
+
     def data_path(self, subject, path=None, force_update=False, update_path=None, verbose=None):
-        return st.session_state.path_edf[subject]
-
-    
-
-
-
-def fix_stim(edf_raw):
-    """ fix stim for old procedure """
-
-    ## get markers (biocalib+kines+ mi). This is the event of trial.
-    markerIndex = edf_raw.get_data(picks=["MarkerIndex"], units='uV')[0]
-    markers = np.where(markerIndex != 0)[0] # (320,)
-
-    ## stim fix (because we assign value0)
-    markerValueInt = edf_raw.get_data(picks=["MarkerValueInt"], units='uV')[0]
-    stim = np.zeros_like(markerValueInt)
-    for i, value in enumerate(markers):
-        # 120 biocalib, offset = 20
-        if 0 <= i < 120:
-            offset = 20
-            stim[value] = markerValueInt[value] + offset
-        
-        # 20 kines, offset = 10
-        elif 120 <= i < 140:
-            offset = 10
-            stim[value] = markerValueInt[value] + offset
-        
-        # 140 MI, 1,2,3,4
-        else:
-            if markerValueInt[value] == 0:
-                stim[value] = 1
-            else:
-                stim[value] = markerValueInt[value] + 1
-
-    # ## plot check
-    # import matplotlib.pyplot as plt
-    # fig, ax = plt.subplots(3, 1, sharex=True) 
-    # ax[0].plot(markerIndex)
-    # ax[0].set_title("markerIndex")
-    # ax[1].plot(markerValueInt, label="markerValueInt")
-    # ax[1].set_title("markerValueInt")
-    # ax[2].plot(stim, label="markerValueInt_fixed")
-    # ax[2].set_title("markerValueInt_fixed")
-    # plt.show()
-
-    return stim
+        ## ADAPT STREAMLIT 
+        return st.session_state.path_edf[f"{subject}-{self.runs}"]
 
 
 
-
-@st.cache_data
-def st_read_edf(path):
-    """read edf file from the working directory path"""
-    return mne.io.read_raw_edf(path, preload=False)
 
