@@ -20,6 +20,9 @@ class Flex2023_moabb_st(BaseDataset):
             subjects=list(range(12, 20)),
             sessions_per_subject=1,
             events=dict(right_hand=1, left_hand=2, right_foot=3, left_foot=4),
+            # events=dict(right_hand=1, left_hand=2, right_foot=3, left_foot=4,
+            #     right_hand_kines=11, left_hand_kines=12, 
+            #     right_foot_kines=13, left_foot_kines=14),
             code="Flex2023",
             interval=[4, 8], # events at 4s
             paradigm="imagery",
@@ -51,6 +54,7 @@ class Flex2023_moabb_st(BaseDataset):
         raw = mne.io.RawArray(data=data, info=info, verbose=False)
         montage = make_standard_montage("standard_1020")
         raw.set_montage(montage)
+        # raw.set_eeg_reference(ref_channels="average")
         
         return raw
 

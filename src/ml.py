@@ -51,7 +51,11 @@ class Formulate():
 		self.t_mi = t_mi
 		self.event_ids_all = dataset.event_id
 		self.event_ids = {k:v for (k,v) in dataset.event_id.items() \
-				if k in ["left_hand", "right_hand"]} # dict (all)
+				if k in ["left_hand", "right_hand"]}
+		
+		# only for Flex2023
+		self.event_ids_foot = {k:v for (k,v) in dataset.event_id.items() \
+				if k in ["left_foot", "right_foot"]}
 		self.fs = fs
 
 		
@@ -66,10 +70,10 @@ class Formulate():
 					events = list(event_ids.keys()),
 					n_classes = len(event_ids.keys()),
 					# fmin = 0, fmax = self.fs/2-0.001, 
-					fmin = 8, fmax = 12, 
+					fmin = 8, fmax = 13, 
 					tmin = interval[0], 
 					tmax = interval[1], 
-					# channels=self.channels,
+					channels=self.channels,
 					resample=128,
 					)
 		
@@ -81,7 +85,7 @@ class Formulate():
 					n_classes = len(event_ids.keys()),
 					tmin = interval[0],
 					tmax = interval[1],
-					# channels=self.channels,
+					channels=self.channels,
 					resample=128,
 					)
 	
@@ -113,7 +117,8 @@ class Formulate():
 	
 
 	def form_mi_all(self)->None:
-		""" get data for MI model (to be cross-check with moabb evaluation)"""
+		""" get data for MI model 
+		(to be cross-check with moabb evaluation)"""
 
 		if self.feature == "csp":
 			epochs = self._extract("epochs", self.event_ids_all, self.t_mi)
@@ -129,25 +134,38 @@ class Formulate():
 	
 
 	def form_mi_2class(self)->None:
-		""" get data for MI model (to be cross-check with moabb evaluation)"""
+		""" get data for MI model 
+		(to be cross-check with moabb evaluation)"""
 
 		x, y = self._extract("xy", self.event_ids, self.t_mi)
 		le = LabelEncoder()
 		y = le.fit_transform(y)
-
 		return x, y
+
+
+	def form_mi_2class_foot(self)->None:
+		""" get data for MI model 
+		(to be cross-check with moabb evaluation)"""
+
+		x, y = self._extract("xy", self.event_ids_foot, self.t_mi)
+		le = LabelEncoder()
+		y = le.fit_transform(y)
+		return x, y
+
 
 	
 	def form(self, model_name=""):
 		""" formulate data """
 
-		if model_name == "MI_2class":
+		if model_name == "MI_2class_hand":
 			x, y = self.form_mi_2class()
+		elif model_name == "MI_2class_foot":
+			x, y = self.form_mi_2class_foot()
 		elif model_name == "MI_all":
 			x, y = self.form_mi_all()
 		elif model_name == "Rest/NoRest":
 			x, y = self.form_binary()
-
+			
 		return x, y
 
 
@@ -155,7 +173,8 @@ class Formulate():
 ################################
 class Pipeline_CSP_Scratch():
 	"""
-	Run pipeline for (x,y), either one of 3 models MI_2class / MI_all / Rest_NoRest
+	Run pipeline for (x,y), either one of 3 models 
+		MI_2class / MI_all / Rest_NoRest
 	"""
 	def __init__(self, feature="csp", classifier="lda"):
 
@@ -230,7 +249,7 @@ class Pipeline_CSP_Scratch():
 
 
 ################################
-def run_ml_feedback(model_name="MI_2class"):
+def run_ml_feedback():
 	""" machine learning pipeline """
 
 
@@ -246,40 +265,36 @@ def run_ml_feedback(model_name="MI_2class"):
 	df = pd.DataFrame()
 	j = 0
 	
-
-	for feature in ["csp", "fbcsp"]:
-		for t_mi in [(0,2), (1,3), (2,4)]:
-
-			# data
-			f = Formulate(dataset, fs, subject, 
-						feature=feature,
-						channels=("C3", "Cz", "C4"),
-						t_rest=(-2,0),
-						t_mi=t_mi
-						)
-			x, y = f.form(model_name)
-			_,count = np.unique(y, return_counts=True)
-
+	for t_mi in [(-2,0), (-1,1), (0,2), (1,3), (2,4)]:
+		for feature in ["csp"]:
 			for classifier in ["lda"]:
-				p = Pipeline_CSP_Scratch(feature, classifier)
-				_df = p.run(x, y)
+				for model_name in ["MI_2class_hand", "MI_2class_foot", "MI_all"]:
+					channels = ("C3", "Cz", "C4")
+					# data
+					f = Formulate(dataset, fs, subject, 
+								feature=feature,
+								channels=channels,
+								t_rest=(-4,-2),
+								t_mi=t_mi
+								)
+					x, y = f.form(model_name)
+					_,count = np.unique(y, return_counts=True)
 
-				# save
-				df.loc[j, "runs"] = run
-				df.loc[j, "trials/class"] = f"{count.mean():.1f}"
-				df.loc[j, "method"] = f"{feature}+{classifier}"
-				df.loc[j, "t_mi(from_MI_start)"] = str(t_mi)
-				df.loc[j, "model_name"] = model_name
-				df.loc[j, "score"] = _df['score'].mean()
-				j += 1
+					#
+					p = Pipeline_CSP_Scratch(feature, classifier)
+					_df = p.run(x, y)
 
-				# # log
-				# print("\n\n==== [run={}]-[method={}+{}]-[t_mi={}]======\n\n".format(
-				# 	run, feature, classifier, t_mi
-				# ))
-				# print(f"x: {x.shape}, y: {y.shape}")
-				# print(f"unique: {[(i,v) for (i,v) in zip(_,count)]}")
-				# print(df)
+					# save
+					df.loc[j, "subject"] = subject
+					df.loc[j, "runs"] = run
+					df.loc[j, "trials/class"] = f"{count.mean():.1f}"
+					df.loc[j, "t_mi"] = str([j+4 for j in t_mi]) # the event start at 4s
+					df.loc[j, "method"] = f"{feature}+{classifier}"
+					df.loc[j, "model_name"] = model_name
+					df.loc[j, "channels"] = str(channels)
+					df.loc[j, "score"] = _df['score'].mean()
+					j += 1
+
 	return df
 
 
@@ -290,10 +305,10 @@ def plot_ml_feedback(df):
 
 	g = sns.catplot(
 		data=df,
-		x="t_mi(from_MI_start)",
+		x="t_mi",
 		y="score",
-		hue="method",
-		col="model_name",
+		hue="model_name",
+		row="method",
 		kind="bar",
 		palette="viridis", 
 		height=3.5, aspect=3,

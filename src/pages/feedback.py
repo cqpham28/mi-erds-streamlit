@@ -9,6 +9,10 @@ from src.ml import run_ml_feedback, plot_ml_feedback
 
 
 
+D_EVENT = {
+    # "kines": dict(left_hand_kines=11, right_hand_kines=12),
+    "mi": dict(left_hand=1, right_hand=2),
+}
 
 
 ################ MAIN #################
@@ -44,26 +48,35 @@ def write():
                 st.session_state.current_run = run
                 st.session_state.path_edf[f"{sb[0]}-{run}"] = pathfile # 13-run1
 
-
                 ## [Level-2] Tab_ML & ERDS
                 tab_ml, tab_curve = st.tabs(["ML", "ERDS_Curve"])
 
+                ## ML benchmark
                 with tab_ml:
-                    with st.spinner("Running classifier"):
-                        df = run_ml_feedback(model_name="MI_2class")
-                        img = plot_ml_feedback(df)
-                        st.image(img)
 
+                    st.markdown('''
+                        :blue[Check AUC-ROC/Accuracy of (LH-RH)/(LF-RF)/(4class) model]\n
+                        :blue[Apply 3 channels C3-Cz-C4. Using CSP(8-13Hz).]
+                        ''')
+                    with st.spinner("Running classifier..."):
+                        df = run_ml_feedback()
+                        st.image(plot_ml_feedback(df))
+
+                ## Visualization
                 with tab_curve:
-                    with st.spinner("Running tfr and plotting curve"): 
-                        get_tfr()
-                        img_curve = plot_curve()
-                        st.image(img_curve)
-
-
-
-
-
+                    st.markdown('''
+                        :blue[Check ERDS visualization. The correct response can be seen as follows:]\n
+                        + :blue[Left Hand --> observe strong ERD (decrease power) in alpha_C4]\n
+                        + :blue[Right Hand --> observe strong ERD (decrease power) in alpha_C3]
+                        ''')
+                    
+                    with st.spinner("Plotting curve..."): 
+                        for task in ["hand", "foot"]:
+                            with st.expander(f":blue[{task}]", expanded=True):
+                                get_tfr(tmin=1, tmax=9, baseline=(1,2), task=task)
+                                img_c = plot_curve(task=task)
+                                st.image(img_c)
+    
 
 
 
