@@ -20,20 +20,13 @@ class Flex2023_moabb_st(BaseDataset):
             subjects=list(range(12, 20)),
             sessions_per_subject=1,
             events=dict(right_hand=1, left_hand=2, right_foot=3, left_foot=4),
-            # events=dict(right_hand=1, left_hand=2, right_foot=3, left_foot=4,
-            #     right_hand_kines=11, left_hand_kines=12, 
-            #     right_foot_kines=13, left_foot_kines=14),
             code="Flex2023",
             interval=[4, 8], # events at 4s
             paradigm="imagery",
             doi="",
         )
         self.runs = "run1"
-        
-
-    def _flow(self, raw0, stim):
-        # fmt: off
-        eeg_ch_names = [
+        self.eeg_ch_names = [
             'Cz', 'Fz', 'Fp1', 'F7', 'F3', 
             'FC1', 'C3', 'FC5', 'FT9', 'T7', 
             'CP5', 'CP1', 'P3', 'P7', 'PO9', 
@@ -42,16 +35,24 @@ class Flex2023_moabb_st(BaseDataset):
             'FT10', 'FC6', 'C4', 'FC2', 'F4', 
             'F8', 'Fp2'
         ]
+        
+
+    def _flow(self, raw0, stim):
 
         ## get eeg (32,N)
-        data = raw0.get_data(picks=eeg_ch_names)
+        data = raw0.get_data(picks=self.eeg_ch_names)
+        
         # stack eeg (32,N) with stim (1,N) => (32, N)
         data = np.vstack([data, stim.reshape(1,-1)])
 
         ch_types = ["eeg"]*32 + ["stim"]
-        ch_names = eeg_ch_names + ["Stim"]
-        info = mne.create_info(ch_names=ch_names, ch_types=ch_types, sfreq=128)
-        raw = mne.io.RawArray(data=data, info=info, verbose=False)
+        ch_names = self.eeg_ch_names + ["Stim"]
+        info = mne.create_info(ch_names=ch_names, 
+                            ch_types=ch_types, 
+                            sfreq=128)
+        raw = mne.io.RawArray(data=data, 
+                            info=info, 
+                            verbose=False)
         montage = make_standard_montage("standard_1020")
         raw.set_montage(montage)
         # raw.set_eeg_reference(ref_channels="average")
@@ -67,13 +68,24 @@ class Flex2023_moabb_st(BaseDataset):
         stim = raw0.get_data(picks=["MarkerValueInt"], units='uV')[0]
         raw = self._flow(raw0, stim)
 
+        ## filter
+        raw.filter(l_freq=1.0, h_freq=None).notch_filter(freqs=[50])
+
         return {"0": {"0": raw}}
 
 
 
-    def data_path(self, subject, path=None, force_update=False, update_path=None, verbose=None):
+    def data_path(
+        self, 
+        subject, 
+        path=None, 
+        force_update=False, 
+        update_path=None, 
+        verbose=None
+        ):
         ## ADAPT STREAMLIT 
-        return st.session_state.path_edf[f"{subject}-{self.runs}"]
+        key = f"{subject}_{self.runs}"
+        return st.session_state.path_edf[key]
 
 
 

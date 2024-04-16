@@ -18,6 +18,9 @@ from moabb.pipelines.utils import FilterBank
 from moabb.paradigms import MotorImagery, FilterBankMotorImagery
 from mne.decoding import CSP
 
+from pyriemann.classification import MDM, TSclassifier
+from pyriemann.estimation import Covariances
+
 from src.data import Flex2023_moabb_st 
 
 
@@ -100,7 +103,6 @@ class Formulate():
 			return x, y
 
 	
-
 	def form_binary(self)->None:
 		""" get data for Rest/NoRest classifier"""
 
@@ -183,15 +185,14 @@ class Pipeline_CSP_Scratch():
 			self.fe = CSP(n_components=8)
 		elif feature == "fbcsp":
 			self.fe = FilterBank(estimator=CSP(n_components=4))
+		elif feature == "cov_tangent":
+			self.fe = [Covariances(), TangentSpace()]
 
 		if classifier == "lda":
 			self.classifier = LDA()
-		elif classifier == "svm":
-			self.classifier = SVC(C=5, 
-							gamma='auto', 
-							kernel='rbf',
-							probability=True, 
-							random_state=42),
+		elif classifier == "svm_linear":
+			self.classifier = SVC(kernel='linear', probability=True, random_state=42)
+		
 
 	
 	def _pipe(self, x_train, y_train, x_test, y_test):
@@ -299,7 +300,6 @@ def run_ml_feedback():
 
 
 
-
 def plot_ml_feedback(df):
 	""" visualization """
 
@@ -328,5 +328,40 @@ def plot_ml_feedback(df):
 	# plt.tight_layout()
 	plt.savefig(f'refs/catplot.png')
 	img = Image.open(f'refs/catplot.png')
+
+	return img
+
+
+
+def plot_benchmark(df, subject:int):
+	""" visualization """
+
+	df = df.loc[df["subject"]==subject]
+
+	g = sns.catplot(
+		data=df,
+		x="t_mi",
+		y="score",
+		hue="model_name",
+		row="runs",
+		kind="bar",
+		palette="viridis", 
+		height=3.5, aspect=3,
+	)
+	# iterate through axes
+	for ax in g.axes.ravel():
+		# add annotations
+		for c in ax.containers:
+			labels = [f"{v.get_height():.2f}" for v in c]
+			ax.bar_label(c, labels=labels, label_type='edge')
+		ax.margins(y=0.2)
+
+	plt.ylim((0,1))
+	# plt.suptitle(f"MI_2class (3chan, t=0-3s)", fontweight='bold', x=0.9)
+	# plt.show()
+
+	# plt.tight_layout()
+	plt.savefig(f'refs/bm.png')
+	img = Image.open(f'refs/bm.png')
 
 	return img

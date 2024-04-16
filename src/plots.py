@@ -4,6 +4,7 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
+import base64
 import matplotlib.pyplot as plt
 from PIL import Image
 from moabb.paradigms import MotorImagery
@@ -35,6 +36,7 @@ def get_tfr(
     Return:
         MNE Epochs, MNE tfr
     """
+    
     ## ADAPT STREAMLIT
     subject = st.session_state.current_subject
     run = st.session_state.current_run
@@ -69,8 +71,8 @@ def get_tfr(
     print(raw)
     print(raw.info)
 
-    events, _ = mne.events_from_annotations(raw, event_id=event_ids)
-    # print(events)
+    events, _ = mne.events_from_annotations(raw, 
+                    event_id=event_ids)
 
     # epochs always within (events-tmin, events+tmax)
     epochs = mne.Epochs(
@@ -230,10 +232,15 @@ def plot_curve(task="hand"):
         g.fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.08)
 
     plt.tight_layout()
-    plt.savefig(f'refs/curve_{task}.png')
-    img_c = Image.open(f'refs/curve_{task}.png')
+    pathsave = f'refs/curve_{task}.png'
+    plt.savefig(pathsave)
     plt.close()
+    img_c = Image.open(pathsave)
 
-    return img_c
+    # encode binary data
+    with open(pathsave, 'rb') as f:
+        decoded = base64.b64encode(f.read())
+
+    return img_c, decoded
 
 

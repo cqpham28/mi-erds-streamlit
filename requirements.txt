@@ -3,3 +3,4 @@ mne
 streamlit
 seaborn
 scikit-learn
+boto3

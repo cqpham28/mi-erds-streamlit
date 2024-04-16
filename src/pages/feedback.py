@@ -1,18 +1,10 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import mne
-from io import BytesIO
 import os
-
 from src.plots import get_tfr, plot_curve, plot_heatmap
 from src.ml import run_ml_feedback, plot_ml_feedback
-
-
-
-D_EVENT = {
-    # "kines": dict(left_hand_kines=11, right_hand_kines=12),
-    "mi": dict(left_hand=1, right_hand=2),
-}
+import src.utils as utils
 
 
 ################ MAIN #################
@@ -23,9 +15,10 @@ def write():
 
     ## Uploader
     with st.expander(label=':blue[MI Experiment Runs]', expanded=True):
-        path_upload_processed = st.file_uploader("Upload (multiple) EEG files [.edf]", 
-                                            type=["edf"],
-                                            accept_multiple_files=True)
+        path_upload_processed = st.file_uploader(
+            "Upload (multiple) EEG files [.edf]", 
+            type=["edf"],
+            accept_multiple_files=True)
 
     ## Check upload success
     if len(path_upload_processed) > 0:
@@ -42,25 +35,34 @@ def write():
 
                 fn = uploaded.name
                 run = fn[fn.find("run") : fn.find("run")+4] 
-                sb = [int(i[1:]) for i in fn.split("_") if "F" in i and len(i)<5] # F13->int(13)
+                tmp = [int(i[1:]) for i in fn.split("_") \
+                        if "F" in i and len(i)<5] # F13->[int(13)]
+                subject = tmp[0]
 
-                st.session_state.current_subject = sb[0]
+                st.session_state.current_subject = subject
                 st.session_state.current_run = run
-                st.session_state.path_edf[f"{sb[0]}-{run}"] = pathfile # 13-run1
+                key = f"{subject}_{run}"
+                st.session_state.path_edf[key] = pathfile # 13-run1
 
                 ## [Level-2] Tab_ML & ERDS
                 tab_ml, tab_curve = st.tabs(["ML", "ERDS_Curve"])
 
                 ## ML benchmark
                 with tab_ml:
-
                     st.markdown('''
                         :blue[Check AUC-ROC/Accuracy of (LH-RH)/(LF-RF)/(4class) model]\n
                         :blue[Apply 3 channels C3-Cz-C4. Using CSP(8-13Hz).]
                         ''')
                     with st.spinner("Running classifier..."):
                         df = run_ml_feedback()
-                        st.image(plot_ml_feedback(df))
+                        img = plot_ml_feedback(df)
+                        st.image(img)
+
+                    with st.spinner("Upload dataframe..."):
+                        name_save = f"RESULTS/benchmark/flex2023/{key}_df.csv"
+                        utils.upload_df_to_s3(df, name_save)
+                    st.success(f"Upload to {name_save}")
+
 
                 ## Visualization
                 with tab_curve:
@@ -74,10 +76,16 @@ def write():
                         for task in ["hand", "foot"]:
                             with st.expander(f":blue[{task}]", expanded=True):
                                 get_tfr(tmin=1, tmax=9, baseline=(1,2), task=task)
-                                img_c = plot_curve(task=task)
+                                img_c, decoded = plot_curve(task=task)
                                 st.image(img_c)
-    
 
+                            with st.spinner("Upload image..."):
+                                name_save = f"RESULTS/benchmark/flex2023/{key}_curve_{task}"
+                                utils.upload_img_to_s3(decoded, name_save)
+                            st.success(f"Upload to {name_save}")
+
+
+    
 
 
 @st.cache_data
@@ -102,3 +110,6 @@ def save_uploaded_file(uploaded_file, save_dir="refs")->None:
         print("Upload a file to save.")
     
     return file_path
+
+
+
