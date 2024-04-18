@@ -45,7 +45,7 @@ def init():
     col1, col2, col3 = st.columns(3)
     with col1:
         st.success(f"Bucket Initiated")
-        st.write(st.session_state.aws)
+        # st.write(st.session_state.aws)
     # with col2:
     #     with st.expander("Check bucket (edf)"):
     #         st.write([i for i in utils.fetch_path() \
