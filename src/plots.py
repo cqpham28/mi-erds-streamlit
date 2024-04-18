@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import base64
 import matplotlib.pyplot as plt
-from PIL import Image
 from moabb.paradigms import MotorImagery
 
 import mne
@@ -21,8 +20,6 @@ from src.data import Flex2023_moabb_st
 
 
 
-
-# @st.cache_data
 def get_tfr(
     tmin = 1, 
     tmax = 9,
@@ -234,13 +231,8 @@ def plot_curve(task="hand"):
     plt.tight_layout()
     pathsave = f'refs/curve_{task}.png'
     plt.savefig(pathsave)
-    plt.close()
-    img_c = Image.open(pathsave)
+    plt.close() 
 
-    # encode binary data
-    with open(pathsave, 'rb') as f:
-        decoded = base64.b64encode(f.read())
-
-    return img_c, decoded
+    return pathsave
 
 

@@ -337,6 +337,7 @@ def plot_benchmark(df, subject:int):
 	""" visualization """
 
 	df = df.loc[df["subject"]==subject]
+	df = df.loc[df["model_name"]!="MI_all"]
 
 	g = sns.catplot(
 		data=df,

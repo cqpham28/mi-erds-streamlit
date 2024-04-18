@@ -6,7 +6,7 @@ from PIL import Image
 
 
 ################ FUNCTIONS #################
-def fetch_path(prefix):
+def fetch_path(prefix=""):
     """ 
     get listdir of a certain directory
     """
@@ -49,32 +49,25 @@ def upload_df_to_s3(df, name_save):
 #------------------#
 def read_img_from_s3(path_file=""):
     """
-
+    download and read image from s3
     """
-    obj = st.session_state.aws["s3"].Object(
-        st.secrets.aws["BUCKET_NAME"], path_file)
-    tmp = obj.get()['Body'].read()
 
-    pathsave = 'refs/decoded_img.png' 
-    with open(pathsave, 'wb') as f:
-        decoded_image_data = base64.decodebytes(tmp)
-        f.write(decoded_image_data)
-    
+    pathsave = "refs/temp.png"
+    st.session_state.aws["bucket"].download_file(path_file, pathsave)
+
     img = Image.open(pathsave)
     return img
 
 
 
-
 #------------------#
-def upload_img_to_s3(decoded, name_save):
+def upload_file_to_s3(name_source, name_save):
     """
     upload image to bucket
     """
 
-    st.session_state["aws"]["s3_client"].upload_fileobj(
-        BytesIO(decoded),
+    st.session_state["aws"]["s3_client"].upload_file(
+        name_source,
         st.secrets.aws["BUCKET_NAME"], 
         name_save
         )
-    
