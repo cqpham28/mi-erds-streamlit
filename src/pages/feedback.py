@@ -6,13 +6,14 @@ import os
 from src.plots import get_tfr, plot_curve, plot_heatmap
 from src.ml import run_ml_feedback, plot_ml_feedback
 import src.utils as utils
+from src.config import *
 
 
 ################ MAIN #################
 def write():
     """Used to write the page in the app.py file"""
 
-    st.header("MI Feedback")
+    st.header("MI Feedback (for protocol 4c only)")
 
     ## Uploader
     with st.expander(label=':blue[MI Experiment Runs]', expanded=True):
@@ -32,7 +33,7 @@ def write():
                 
                 ## data
                 uploaded = path_upload_processed[i]
-                pathfile = save_uploaded_file(uploaded)
+                pathfile = utils.save_uploaded_file(uploaded)
 
                 fn = uploaded.name
                 run = fn[fn.find("run") : fn.find("run")+4] 
@@ -60,15 +61,15 @@ def write():
                         img = plot_ml_feedback(df)
                         st.image(img)
 
-                    ## Upload data 
-                    with st.spinner("Uploading dataframe..."):
-                        name_save = f"RESULTS/benchmark/flex2023/{key}_df.csv"
-                        utils.upload_df_to_s3(df, name_save)
+                    # ## Upload data 
+                    # with st.spinner("Uploading dataframe..."):
+                    #     name_save = f"RESULTS/benchmark/flex2023/{key}_df.csv"
+                    #     utils.upload_df_to_s3(df, name_save)
 
-                    with st.spinner("Uploading edf..."):
-                        name_save = f"DATASET/flex2023/F{subject}/{pathfile.split('/')[-1]}"
-                        utils.upload_file_to_s3(pathfile, name_save)
-                    st.success(f"Done upload: {name_save}")
+                    # with st.spinner("Uploading edf..."):
+                    #     name_save = f"DATASET/flex2023/F{subject}/{pathfile.split('/')[-1]}"
+                    #     utils.upload_file_to_s3(pathfile, name_save)
+                    # st.success(f"Done upload: {name_save}")
 
 
                 ## Visualization
@@ -81,41 +82,24 @@ def write():
                     with st.spinner("Plotting curve..."): 
                         for task in ["hand", "foot"]:
                             with st.expander(f":blue[{task}]", expanded=True):
-                                get_tfr(tmin=1, tmax=9, baseline=(1,2), task=task)
+                                get_tfr(
+                                    tmin=TFR_TMIN, 
+                                    tmax=TFR_TMAX, 
+                                    baseline=TFR_BASELINE, 
+                                    task=task
+                                )
                                 path = plot_curve(task=task)
                                 st.image(Image.open(path))
 
-                            with st.spinner("Upload image..."):
-                                name_save = f"RESULTS/benchmark/flex2023/{key}_curve_{task}.png"
-                                utils.upload_file_to_s3(path, name_save)
+                            # with st.spinner("Upload image..."):
+                            #     name_save = f"RESULTS/benchmark/flex2023/{key}_curve_{task}.png"
+                            #     utils.upload_file_to_s3(path, name_save)
 
 
 
     
 
 
-@st.cache_data
-def save_uploaded_file(uploaded_file, save_dir="refs")->None:
-    """Saves uploaded file to a specified directory"""
-    
-    if uploaded_file is not None:
-        file_name = uploaded_file.name
-        file_path = os.path.join(save_dir, file_name)
-        try:
-            with open(file_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            print(f"File '{file_name}' saved successfully to {save_dir}")
-
-        except FileNotFoundError:
-            print(f"Error: Directory '{save_dir}' does not exist.")
-            print("Please create the directory or choose an existing one.")
-            
-        except Exception as e:
-            print(f"An error occurred while saving the file: {e}")
-    else:
-        print("Upload a file to save.")
-    
-    return file_path
 
 
 

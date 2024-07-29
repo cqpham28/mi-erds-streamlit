@@ -16,7 +16,8 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import TwoSlopeNorm
 import seaborn as sns
 
-from src.data import Flex2023_moabb_st
+from src.flex2023 import Flex2023_moabb_st
+from src.config import *
 
 
 
@@ -27,9 +28,6 @@ def get_tfr(
     task = "hand",
     ):
     """
-    Args:
-        dataset: MNE's dataset of FLEX2023.
-        event_ids: dict(left_hand=2, right_hand=1,)
     Return:
         MNE Epochs, MNE tfr
     """
@@ -42,7 +40,7 @@ def get_tfr(
     dataset.runs = run
 
     ## CONFIG
-    fmin, fmax = 0, 63.999
+    fmin, fmax = 0, SAMPLING_RATE/2-0.001
     freqs = np.arange(2, 36)  # frequency for tfr
     event_ids = st.session_state.data_run[task]["event_ids"]
 
@@ -64,7 +62,7 @@ def get_tfr(
         return_raws=True
         )
     raw = concatenate_raws([f for f in X])
-    raw = raw.resample(sfreq=128)
+    raw = raw.resample(sfreq=SAMPLING_RATE)
     print(raw)
     print(raw.info)
 
@@ -183,7 +181,6 @@ def plot_curve(task="hand"):
 	## ADAPT STREAMLIT
     run = st.session_state.current_run
     (epochs, tfr) = st.session_state.data_run[task][run]
-
 
     channels = ("C3", "Cz", "C4")
     df = tfr.to_data_frame(
