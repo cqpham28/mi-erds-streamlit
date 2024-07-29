@@ -13,7 +13,7 @@ from sklearn.svm import SVC
 from sklearn.model_selection import StratifiedKFold
 from sklearn import metrics
 from sklearn.linear_model import Lasso
-import mrmr
+# import mrmr
 from pyriemann.classification import MDM, TSclassifier
 from pyriemann.estimation import Covariances
 from pyriemann.tangentspace import TangentSpace
@@ -39,7 +39,7 @@ class METHODS:
         
         "alphaCSP+CCA+LDA": None,
         "FBCSP+LDA": None,
-        "mrmrFBCSP+LDA": None,
+        # "mrmrFBCSP+LDA": None,
         "SparseFBCSP+LDA": None,
 
         # #--------#
@@ -102,12 +102,12 @@ class Pipeline_ML():
                 ft_train_select = ft_train[:, idx]
                 ft_test_select = ft_test[:, idx]
             
-            elif "mrmr" in self.method:
-                selected = mrmr.mrmr_classif(X=pd.DataFrame(ft_train), 
-                                            y=pd.Series(y_train), 
-                                            K=int(0.5*ft_train.shape[1]))
-                ft_train_select = ft_train[:, selected]
-                ft_test_select = ft_test[:, selected]
+            # elif "mrmr" in self.method:
+            #     selected = mrmr.mrmr_classif(X=pd.DataFrame(ft_train), 
+            #                                 y=pd.Series(y_train), 
+            #                                 K=int(0.5*ft_train.shape[1]))
+            #     ft_train_select = ft_train[:, selected]
+            #     ft_test_select = ft_test[:, selected]
             
             else:
                 ft_train_select = ft_train
