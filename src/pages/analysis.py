@@ -60,7 +60,7 @@ def write():
 
         # get data from S3
         path_save = f"refs/{key}.edf"
-        get_edf_s3(path_file=path_edf, 
+        get_edf_s3(path_file=fn, 
                    path_save=path_save)
         st.session_state.path_edf[key] = path_save
 

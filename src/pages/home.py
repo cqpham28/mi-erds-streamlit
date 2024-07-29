@@ -45,16 +45,12 @@ def write():
             # upload to s3
             name_source = f"refs/{fn}"
             name_save = os.path.join(root, subject, fn)
-            st.write(name_source)
-            st.write(name_save)
             utils.upload_file_to_s3(name_source, name_save)
 
             # log
             st.success(f"Uploaded: {name_save}")
 
                 
-
-
     # Show files
     with st.expander("Check files"):
         for k,v in st.session_state.all_files.items():

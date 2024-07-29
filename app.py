@@ -6,7 +6,7 @@ pip install -r requirements.txt
 import os
 import streamlit as st
 import src.utils as utils
-from src.pages import home, analysis, feedback, benchmark
+from src.pages import home, analysis
 
 st.set_page_config(
     page_title="app",
