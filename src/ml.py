@@ -257,12 +257,13 @@ def run_ml_feedback():
 
 	## ADAPT STREAMLIT
 	subject = st.session_state.current_subject
-	run = st.session_state.current_run
 
 	dataset = Flex2023_moabb_st()
 	fs = SAMPLING_RATE
 	dataset.subject_list = [subject]
-	dataset.runs = run
+	dataset.protocol = "4c"
+	dataset.session = st.session_state.current_session
+	dataset.runs = st.session_state.current_run # 1
 
 	df = pd.DataFrame()
 	j = 0

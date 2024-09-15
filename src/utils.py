@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 from io import BytesIO, StringIO
-import base64
+import numpy as np
 import os
 from PIL import Image
 import hmac
@@ -14,7 +14,9 @@ def fetch_path(prefix=""):
     get listdir of a certain directory
     """
     list_path = []
-    for obj in st.session_state.aws["bucket"].objects.filter(Prefix=prefix): 
+    for obj in st.session_state.aws["s3"] \
+                                .Bucket(st.secrets.aws["BUCKET_NAME"]) \
+                                .objects.filter(Prefix=prefix): 
         list_path.append(obj.key)
     return list_path
 
@@ -153,7 +155,69 @@ def init_s3():
         if "aws" not in st.session_state:
             st.session_state.aws = {
                 "s3": session.resource("s3"), 
-                "bucket": session.resource("s3").Bucket(
-                    st.secrets.aws["BUCKET_NAME"]), 
+                # "bucket": session.resource("s3").Bucket(st.secrets.aws["BUCKET_NAME"]), 
                 "s3_client": session.client("s3")
                 }
+            
+
+# @st.cache
+def get_edf_s3(path_file:str, path_save:str):
+    """get path of downloaded edf from aws s3"""
+
+    if os.path.isfile(path_save):
+        st.success(f"Detect file: {path_save}")
+    else:
+        with st.spinner(":blue[DOWNLOADING FILE...]"):
+            st.session_state.aws["s3"] \
+                .Bucket(st.secrets.aws["BUCKET_NAME"]) \
+                .download_file(path_file, path_save)
+        st.success(f"S3 Downloaded: {path_save}")
+
+
+        
+
+################ SELECT FILES #################
+def select_box_to_file(list_protocols=["8c", "8c*", "4c"]):
+    """
+    Create 4 streamlit select_box, allow user to navigate 
+    through protocol->subject->session->file run
+
+    """
+
+    ## Choose edf file
+    col1,col2,col3,col4,_ = st.columns([1,1,1,2,5])
+    
+    # Choose protocol
+    with col1:
+        protocol = st.selectbox("Protocol", list_protocols)
+
+    # Choose available subject (from key of st.session_state.all_files)
+    with col2:
+        list_subjects = [i for i,v in st.session_state.all_files.items() \
+                            if len(v)>0 and f"_{protocol}_" in v[0]]
+        subject = st.selectbox("Subject", list_subjects)
+    
+    # Choose available session
+    tmp_files = st.session_state.all_files[subject]
+    with col3:
+        list_sessions = np.unique([f[f.find("_ss")+1: f.find("_ss")+4] \
+                                    for f in tmp_files])
+        session = st.selectbox("Session", list_sessions)
+
+    # Choose available file
+    with col4:
+        # flatten list of list
+        list_files = [f for f in tmp_files \
+                        if "md" not in f and f.endswith(".edf") \
+                            and session in f]
+        # map filename_short (F37_ss1_run1) to filename_fullpath (DATA/F37/...)
+        d_fn = {
+            f[f.find("_F")+1 : f.find("run")+4] : f \
+                for f in list_files
+        }
+                
+        fn = st.selectbox("Choose file", d_fn.keys())
+        run = fn.split("_")[-1]
+        path_file = d_fn[fn]
+    
+    return protocol, subject, session, run, path_file

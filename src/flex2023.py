@@ -13,7 +13,7 @@ class Flex2023_moabb_st(BaseDataset):
     """Motor Imagery moabb dataset 
     Adapt to streamlit implementation"""
 
-    def __init__(self, protocol:str="8c", runs:int=1):
+    def __init__(self, protocol:str="8c", session:str="ss1", run:str="run1"):
 
         if "4c" in protocol:
             events = dict(right_hand=1, left_hand=2, right_foot=3, left_foot=4)
@@ -31,8 +31,10 @@ class Flex2023_moabb_st(BaseDataset):
             doi="",
         )
         # self.runs = "run1"
+        # self.key = key
         self.protocol = protocol
-        self.runs = runs
+        self.session = session
+        self.run = run
         
 
     def _flow(self, raw0, stim):
@@ -62,7 +64,7 @@ class Flex2023_moabb_st(BaseDataset):
         return raw
 
 
-    def _get_single_subject_data(self, subject):
+    def _get_single_subject_data(self, subject:int):
         """Return data for a single subject."""
     
         path_edf = self.data_path(subject)
@@ -83,8 +85,7 @@ class Flex2023_moabb_st(BaseDataset):
         verbose=None
         ):
         ## ADAPT STREAMLIT 
-        # key = f"{subject}_{self.runs}"
-        key = f"F{subject}_{self.protocol}_{self.runs}"
+        key = f"F{subject}_{self.protocol}_{self.session}_{self.run}"
         return st.session_state.path_edf[key]
 
 

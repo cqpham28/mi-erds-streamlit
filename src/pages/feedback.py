@@ -9,6 +9,7 @@ import src.utils as utils
 from src.config import *
 
 
+# (09/2024) this is the old version
 ################ MAIN #################
 def write():
     """Used to write the page in the app.py file"""

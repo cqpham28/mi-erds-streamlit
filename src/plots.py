@@ -34,10 +34,15 @@ def get_tfr(
     
     ## ADAPT STREAMLIT
     subject = st.session_state.current_subject
+    protocol = st.session_state.current_protocol
+    session = st.session_state.current_session
     run = st.session_state.current_run
+
     dataset = Flex2023_moabb_st()
     dataset.subject_list = [subject]
-    dataset.runs = run
+    dataset.protocol = protocol
+    dataset.session = session
+    dataset.run = run
 
     ## CONFIG
     fmin, fmax = 0, SAMPLING_RATE/2-0.001

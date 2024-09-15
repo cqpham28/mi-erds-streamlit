@@ -309,11 +309,15 @@ class Formulate():
         elif model_name == "4c_all":
             x, y = self.form_4c_all()
 
+        #------#
         elif model_name == "8c_rest":
             x, y = self.form_8c_rest()
 
         elif model_name == "8c_mi":
             x, y = self.form_8c_mi()
+
+        elif model_name == "8c_hand":
+            x, y = self.form_8c_hand()
         
         else:
             raise ValueError(f"model_name {model_name} is not supported")
@@ -321,9 +325,10 @@ class Formulate():
         print(f"\n({model_name}) | x: {x.shape}, y: {y.shape}")
         a,b = np.unique(y, return_counts=True)
         print(f"({model_name}) | unique: {[(i,v) for (i,v) in zip(a,b)]}")
-        # if binary, reshape label
-        if len(a)==2:
-            y = y.reshape(-1,1)
+        
+        # # if binary, reshape label
+        # if len(a)==2:
+        #     y = y.reshape(-1,1)
 
         return x[:,:,:-1], y
 
