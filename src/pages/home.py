@@ -5,37 +5,55 @@ import src.utils as utils
 
 
 ROOT = "DATASET/FLEX"
+LIST_SUBJECTS = [f"F{i}" for i in range(1,100)]
+LIST_PROTOCOLS = ["4c", "8c", "8c*"]
+LIST_SESSIONS = [f"ss{i}" for i in range(1,10)]
+LIST_RUNS = [f"run{i}" for i in range(1,10)]
 
 
 def init_key():
     """Add template _<subject_id>_<protocol>_<session>_<run_id>"""
 
     if "template_key" not in st.session_state.keys():
-        list_subjects = [f"F{i}" for i in range(1,100)]
-        list_protocols = ["4c", "8c", "8c*"]
-        list_sessions = [f"ss{i}" for i in range(1,10)]
-        list_runs = [f"run{i}" for i in range(1,10)]
         keys = []
-        for sb in list_subjects:
-            for proc in list_protocols:
-                for ss in list_sessions:
-                    for run in list_runs:
+        for sb in LIST_SUBJECTS:
+            for proc in LIST_PROTOCOLS:
+                for ss in LIST_SESSIONS:
+                    for run in LIST_RUNS:
                         keys.append(f"{sb}_{proc}_{ss}_{run}")
         st.session_state["template_key"] = keys
+
+def find_key(fullFileName:str) -> None:
+    """find the config key from path of files"""
+
+    fn = fullFileName.split("/")[-1]
+    keys = [fn[fn.find("_F")+1 : fn.find("_run")+5], fn[: fn.find("run")+4]] # two types of keys
+    tmpkey = [k for k in keys if k in st.session_state["template_key"]] # [F37_8c_ss1_run1]
+    key = tmpkey[0]
+    subject = int(key.split("_")[0][1:])
+
+    return key, subject
+
 
 def init_files():
     """load path of all available files"""
 
     if "all_files" not in st.session_state:
         st.session_state.all_files = {i:[] for i in range(1,100)}
+        st.session_state.all_files_shorten = {i:[] for i in range(1,100)}
 
-        list_files = [i for i in utils.fetch_path(ROOT) \
-                        if i.endswith(".edf")]
+        list_files = [f for f in utils.fetch_path(ROOT) \
+                        if "md" not in f and f.endswith(".edf")]
         
-        for f in list_files:
-            sb = f[f.find("_F")+1:].split("_")[0] # F37
-            subject = int(sb[1:])
-            st.session_state.all_files[subject].append(f)
+        for fn in list_files:
+            ## find key and subject
+            key, subject = find_key(fn)
+
+            ## append
+            st.session_state.all_files[subject].append(fn)
+            fn_s = fn[fn.find(key) : ]
+            st.session_state.all_files_shorten[subject].append(fn_s)
+
 
 
 def write():
@@ -46,11 +64,11 @@ def write():
 
     # INIT
     utils.init_s3()
-    st.success(f"Bucket Initiated")
+    st.success("Bucket Initiated ([access link](%s))" % st.secrets.aws["S3_URL"])
     st.write(st.session_state.aws)
     ## Init
-    init_files()
     init_key()
+    
     
     col1, col2 = st.columns([1,2])
     
@@ -71,20 +89,19 @@ def write():
             for i,v in enumerate(path_upload):
                 # get name
                 uploaded = path_upload[i]
-                filename = uploaded.name
+                fn = uploaded.name
 
-                # Check whether key is correct
-                key = filename[filename.find("_F")+1 : filename.find("run")+4]
-                if key in st.session_state["template_key"]:
+                # Check whether key is contained in the filename
+                key, subject = find_key(fn)
+                if key is not None:
 
                     with st.spinner(":blue[UPLOAD TO S3...]"):
                         # save temporary local file
                         utils.save_uploaded_file(uploaded)
 
                         # upload to s3
-                        name_source = f"refs/{filename}"
-                        subject = key.split("_")[0]
-                        name_save = os.path.join(ROOT, subject, filename)
+                        name_source = f"refs/{fn}"
+                        name_save = os.path.join(ROOT, f"F{subject}", fn)
                         utils.upload_file_to_s3(name_source, name_save)
 
                         # remove local file
@@ -102,17 +119,14 @@ def write():
                 
     # Check Files
     with col2:
-        with st.expander(":red[Check Bucket files]", expanded=False):
+        init_files()
+        with st.expander("Check files", expanded=False):
             df = []
-            for k in st.session_state.all_files.keys():
-                tmp = st.session_state.all_files[k]
-                list_shorten = [fn[fn.find("_F")+1:] for fn in tmp \
-                                if fn.endswith(".edf")]
-                _df = pd.DataFrame.from_dict(list_shorten)
+            for _,val in st.session_state.all_files_shorten.items():
+                _df = pd.DataFrame.from_dict(val)
                 df.append(_df)
-            df = pd.concat(df, ignore_index=True)
-            st.dataframe(df, width=1000) 
-            # for k,v in st.session_state.all_files.items():
-            #     if len(v)>0:
-            #         st.write(k, v)
+            
+            df = pd.concat(df)
+            st.dataframe(df, width=1000)
+
 

@@ -215,7 +215,7 @@ class Formulate():
     
 
     #-----------------------------------#
-    def form_8c_rest(self, t_rest=(2.5, 4.5))->None:
+    def form_8c_rest(self, t_rest=(3, 5))->None:
         """ get data REST (using t_rest in the final 3s of trial.)"""
 
         x,_ = self._extract("xy", self.event_ids_8class, t_rest)

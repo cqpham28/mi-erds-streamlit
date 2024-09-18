@@ -164,6 +164,7 @@ def init_s3():
 def get_edf_s3(path_file:str, path_save:str):
     """get path of downloaded edf from aws s3"""
 
+    st.write(f"Path_file: {path_file}")
     if os.path.isfile(path_save):
         st.success(f"Detect file: {path_save}")
     else:
@@ -199,6 +200,7 @@ def select_box_to_file(list_protocols=["8c", "8c*", "4c"]):
     
     # Choose available session
     tmp_files = st.session_state.all_files[subject]
+
     with col3:
         list_sessions = np.unique([f[f.find("_ss")+1: f.find("_ss")+4] \
                                     for f in tmp_files])
@@ -206,13 +208,14 @@ def select_box_to_file(list_protocols=["8c", "8c*", "4c"]):
 
     # Choose available file
     with col4:
+        tmp_key = f"{subject}_{protocol}_{session}"
+
         # flatten list of list
-        list_files = [f for f in tmp_files \
-                        if "md" not in f and f.endswith(".edf") \
-                            and session in f]
+        list_files = [f for f in tmp_files if tmp_key in f]
+        
         # map filename_short (F37_ss1_run1) to filename_fullpath (DATA/F37/...)
         d_fn = {
-            f[f.find("_F")+1 : f.find("run")+4] : f \
+            f[f.find(tmp_key) : f.find("_run")+5] : f \
                 for f in list_files
         }
                 
