@@ -13,16 +13,15 @@ st.set_page_config(
     layout="wide",
 )
 
-# #---------------#
-# if not utils.check_password():
-#     st.stop()
+#---------------#
+if not utils.check_password():
+    st.stop()
 
 #--------------------------#
 PAGES = {
     "Home": home,
     "Offline Analysis": analysis,
     "ERDS Feedback": feedback2,
-    # "Benchmark": benchmark,
 }
 
 ##-------PARAMETER------##
